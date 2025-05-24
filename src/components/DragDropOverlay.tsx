@@ -39,6 +39,12 @@ export default function DragDropOverlay({ onFileDrop }: DragDropOverlayProps) {
       const files = e.dataTransfer?.files
       if (files && files.length > 0) {
         onFileDrop(files)
+        
+        // Dispatch custom event for DocumentUpload component
+        const event = new CustomEvent('filesDrop', {
+          detail: { files }
+        })
+        window.dispatchEvent(event)
       }
     }
 
