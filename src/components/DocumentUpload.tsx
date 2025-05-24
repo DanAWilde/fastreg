@@ -2,13 +2,14 @@
 
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
-import { Trash2 } from "lucide-react"
+import { Trash2, AlertCircle } from "lucide-react"
 
 type UploadedFile = {
   id: string
   name: string
   progress: number // 0-100
   status: "uploading" | "complete" | "error"
+  errorMessage?: string
 }
 
 interface DocumentUploadProps {
@@ -20,8 +21,46 @@ export default function DocumentUpload({ onFilesSelected }: DocumentUploadProps)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Allowed file types
+  const allowedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']
+  const allowedMimeTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/jpg', 
+    'image/png'
+  ]
+
   const handleClick = () => {
     fileInputRef.current?.click()
+  }
+
+  const validateFile = (file: File): { isValid: boolean; errorMessage?: string } => {
+    // Check file extension
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+    const hasValidExtension = allowedTypes.includes(fileExtension)
+    
+    // Check MIME type
+    const hasValidMimeType = allowedMimeTypes.includes(file.type)
+    
+    if (!hasValidExtension && !hasValidMimeType) {
+      return {
+        isValid: false,
+        errorMessage: 'Only PDF, DOC, DOCX, JPG, and PNG files are supported'
+      }
+    }
+
+    // Check for file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        errorMessage: 'File too large (max 10MB)'
+      }
+    }
+
+    return { isValid: true }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,18 +71,25 @@ export default function DocumentUpload({ onFilesSelected }: DocumentUploadProps)
   }
 
   const addFiles = (fileList: FileList) => {
-    const newFiles = Array.from(fileList).map((file) => ({
-      id: Math.random().toString(36).substring(2, 9),
-      name: file.name,
-      progress: 0,
-      status: "uploading" as const,
-    }))
+    const newFiles = Array.from(fileList).map((file) => {
+      const validation = validateFile(file)
+      
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        progress: 0,
+        status: validation.isValid ? ("uploading" as const) : ("error" as const),
+        errorMessage: validation.errorMessage,
+      }
+    })
 
     setFiles((prev) => [...prev, ...newFiles])
 
-    // Simulate file upload progress for each file
+    // Simulate file upload progress only for valid files
     newFiles.forEach((file) => {
-      simulateFileUpload(file.id)
+      if (file.status === "uploading") {
+        simulateFileUpload(file.id)
+      }
     })
   }
 
@@ -99,6 +145,10 @@ export default function DocumentUpload({ onFilesSelected }: DocumentUploadProps)
             Click or drag any document
           </h2>
 
+          <p className="text-[min(14px,3vw)] text-[#505A62] text-center max-w-md">
+            Supported formats: PDF, DOC, DOCX, JPG, PNG (Max 10MB each)
+          </p>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -136,6 +186,14 @@ export default function DocumentUpload({ onFilesSelected }: DocumentUploadProps)
                           ></div>
                         </div>
                       </div>
+                    ) : file.status === "error" ? (
+                      <div className="w-full">
+                        <div className="flex items-center gap-2 mb-1">
+                          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                          <p className="text-[#30363B] font-medium truncate">{file.name}</p>
+                        </div>
+                        <p className="text-red-600 text-sm">{file.errorMessage}</p>
+                      </div>
                     ) : (
                       <p
                         className="text-[#30363B] font-medium"
@@ -150,7 +208,7 @@ export default function DocumentUpload({ onFilesSelected }: DocumentUploadProps)
                       </p>
                     )}
                   </div>
-                  {hoverIndex === index && file.status === "complete" && (
+                  {hoverIndex === index && (file.status === "complete" || file.status === "error") && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()

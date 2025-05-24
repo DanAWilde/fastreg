@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import DragDropOverlay from "@/components/DragDropOverlay"
 import DocumentUpload from "@/components/DocumentUpload"
+import ChatWindow from "@/components/ChatWindow"
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([])
@@ -36,13 +37,13 @@ export default function Home() {
             Fast Contractor Registration
           </h1>
           <p className="text-[16px] sm:text-[18px] lg:text-[20px] font-medium leading-[1.5] text-[#30363B] max-w-3xl">
-            Upload all the insurances, licences, and documents corporate clients usually request. Unsure? Get instant assistance below.
+            Upload the insurance documents, licenses, and other files typically requested by your clients. Not sure what to upload? Just ask using the chat
           </p>
         </header>
 
         <div className="flex flex-col items-center lg:items-start lg:flex-row gap-6 lg:gap-10">
           <DocumentUpload onFilesSelected={handleFileDrop} />
-          {/* ChatWindow component will go here */}
+          <ChatWindow />
         </div>
       </div>
     </main>
